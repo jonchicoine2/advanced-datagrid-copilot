@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Column, DataGridLayout, SortConfig } from '../components/DataGrid/types';
+import { Column, DataGridLayout, SortConfig, DragColumnEvent } from '../components/DataGrid/types';
 
 // A custom hook for managing DataGrid state
 export function useDataGrid<T>(
@@ -13,6 +13,11 @@ export function useDataGrid<T>(
     defaultLayout?.visibleColumns || columns.filter(col => col.visible !== false).map(col => col.field)
   );
 
+  // Initialize column order from default layout or column order
+  const [columnOrder, setColumnOrder] = useState<string[]>(
+    defaultLayout?.columnOrder || columns.map(col => col.field)
+  );
+
   // Sorting state
   const [sortConfig, setSortConfig] = useState<SortConfig[]>(defaultLayout?.sort || []);
   
@@ -22,6 +27,7 @@ export function useDataGrid<T>(
   // Current layout state
   const [currentLayout, setCurrentLayout] = useState<DataGridLayout>({
     visibleColumns,
+    columnOrder,
     sort: sortConfig,
     groupBy,
   });
@@ -34,13 +40,14 @@ export function useDataGrid<T>(
     const newLayout = {
       ...currentLayout,
       visibleColumns,
+      columnOrder,
       sort: sortConfig,
       groupBy,
     };
     
     setCurrentLayout(newLayout);
     onLayoutChange?.(newLayout);
-  }, [visibleColumns, sortConfig, groupBy]);
+  }, [visibleColumns, columnOrder, sortConfig, groupBy]);
 
   // Update processed data when source data or configuration changes
   useEffect(() => {
@@ -116,6 +123,22 @@ export function useDataGrid<T>(
     });
   }, []);
 
+  // Handle column reordering
+  const handleColumnReorder = useCallback((event: DragColumnEvent) => {
+    setColumnOrder(prevOrder => {
+      const newOrder = [...prevOrder];
+      const sourceIndex = newOrder.indexOf(event.source);
+      const targetIndex = newOrder.indexOf(event.target);
+      
+      if (sourceIndex !== -1 && targetIndex !== -1) {
+        newOrder.splice(sourceIndex, 1);
+        newOrder.splice(targetIndex, 0, event.source);
+      }
+      
+      return newOrder;
+    });
+  }, []);
+
   const saveLayout = useCallback((name: string) => {
     const layoutToSave = {
       ...currentLayout,
@@ -150,6 +173,7 @@ export function useDataGrid<T>(
 
   return {
     visibleColumns,
+    columnOrder,
     sortConfig,
     groupBy,
     currentLayout,
@@ -157,6 +181,7 @@ export function useDataGrid<T>(
     toggleColumnVisibility,
     toggleSort,
     toggleGroupBy,
+    handleColumnReorder,
     saveLayout,
     loadLayout,
     getSavedLayouts,

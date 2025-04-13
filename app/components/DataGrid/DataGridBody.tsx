@@ -4,6 +4,7 @@ import { Column } from './types';
 interface DataGridBodyProps<T> {
   data: T[];
   columns: Column<T>[];
+  columnOrder: string[]; // Add columnOrder prop
   groupBy: string[];
   keyField: string;
   rowHeight: number;
@@ -12,6 +13,7 @@ interface DataGridBodyProps<T> {
 export default function DataGridBody<T extends Record<string, any>>({
   data,
   columns,
+  columnOrder,
   groupBy,
   keyField,
   rowHeight,
@@ -55,30 +57,36 @@ export default function DataGridBody<T extends Record<string, any>>({
     return String(value);
   };
 
+  // Helper to get ordered columns
+  const getOrderedColumns = () => {
+    return columnOrder
+      .map(field => columns.find(col => col.field === field))
+      .filter((col): col is Column<T> => col !== undefined);
+  };
+
+  // Update row rendering to use ordered columns
+  const renderRow = (row: T) => (
+    <div 
+      key={row[keyField].toString()} 
+      className="data-row"
+      style={{ height: `${rowHeight}px` }}
+    >
+      {getOrderedColumns().map(column => (
+        <div 
+          key={`${row[keyField]}-${column.field}`} 
+          className="data-cell"
+          style={{ width: column.width || 'auto' }}
+        >
+          {renderCell(row, column)}
+        </div>
+      ))}
+    </div>
+  );
+
   // Group the data
   const groupData = (items: T[], groupFields: string[], currentPath: string = '') => {
     if (!groupFields.length) {
-      return (
-        <>
-          {items.map(row => (
-            <div 
-              key={row[keyField].toString()} 
-              className="data-row"
-              style={{ height: `${rowHeight}px` }}
-            >
-              {columns.map(column => (
-                <div 
-                  key={`${row[keyField]}-${column.field}`} 
-                  className="data-cell"
-                  style={{ width: column.width || 'auto' }}
-                >
-                  {renderCell(row, column)}
-                </div>
-              ))}
-            </div>
-          ))}
-        </>
-      );
+      return <>{items.map(renderRow)}</>;
     }
     
     const currentGroupField = groupFields[0];
@@ -136,23 +144,7 @@ export default function DataGridBody<T extends Record<string, any>>({
       {groupBy.length > 0 ? (
         groupData(data, groupBy)
       ) : (
-        data.map(row => (
-          <div 
-            key={row[keyField].toString()} 
-            className="data-row"
-            style={{ height: `${rowHeight}px` }}
-          >
-            {columns.map(column => (
-              <div 
-                key={`${row[keyField]}-${column.field}`} 
-                className="data-cell"
-                style={{ width: column.width || 'auto' }}
-              >
-                {renderCell(row, column)}
-              </div>
-            ))}
-          </div>
-        ))
+        data.map(row => renderRow(row))
       )}
     </div>
   );

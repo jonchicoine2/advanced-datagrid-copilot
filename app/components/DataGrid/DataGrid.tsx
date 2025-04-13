@@ -16,6 +16,7 @@ export default function DataGrid<T extends Record<string, any>>({
 }: DataGridProps<T>) {
   const {
     visibleColumns,
+    columnOrder,
     sortConfig,
     groupBy,
     processedData,
@@ -23,6 +24,7 @@ export default function DataGrid<T extends Record<string, any>>({
     toggleColumnVisibility,
     toggleSort,
     toggleGroupBy,
+    handleColumnReorder,
     saveLayout,
     loadLayout,
     getSavedLayouts,
@@ -73,13 +75,16 @@ export default function DataGrid<T extends Record<string, any>>({
       <div className="advanced-data-grid-container">
         <DataGridHeader
           columns={visibleColumnsData}
+          columnOrder={columnOrder}
           sortConfig={sortConfig}
           onSortClick={toggleSort}
+          onColumnReorder={handleColumnReorder}
         />
         
         <DataGridBody
           data={processedData}
           columns={visibleColumnsData}
+          columnOrder={columnOrder}
           groupBy={groupBy}
           keyField={keyField}
           rowHeight={rowHeight}
